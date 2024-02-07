@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}{{book['volumeInfo']['title']}}{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-3 align-items-center align-items-center justify-content-center">
+            <img src="{{ book['volumeInfo']['imageLinks']['thumbnail'] }}" class="book-full-img"/>
+        </div>
+        <div class="col-5">
+            <h4>{{ book['volumeInfo']['title'] }}</h4>
+            <h6>By {{ book['volumeInfo']['authors'] }}</h6>
+            <p>
+                {{ book['volumeInfo']['description'] | safe}}
+            </p>
+        </div>
+        <div class="col">
+            <h5>INR {{ sbook[5] }}</h5>
+            <a href="{{ url_for('checkout', isbn=sbook[8]) }}" class="btn btn-primary btn-lg">Buy Now</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

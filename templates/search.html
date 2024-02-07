@@ -1,0 +1,59 @@
+{% from 'bootstrap4/form.html' import render_form %}
+{% extends 'base.html' %}
+
+{% block title %}Search{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <form action="{{ url_for('search', q=q) }}" method="post" class="row justify-content-center">
+        {{ form.csrf_token }}
+        {{ form.hidden_tag() }}
+        <div class="col-3 text-center">
+            {{ form.ebook_type.label(class_='mr-sm-2 mx-2') }}
+            {{ form.ebook_type(class_='custom-select mr-sm-2 my-1') }}
+        </div>
+        <div class="col-2">
+            {{ form.language.label(class_='mr-sm-2 mx-2') }}
+            {{ form.language(class_='custom-select mr-sm-2 my-1') }}
+        </div>
+        <div class="col-2">
+            {{ form.order_by.label(class_='mr-sm-2 mx-2') }}
+            {{ form.order_by(class_='custom-select mr-sm-2 my-1') }}
+        </div>
+        <div class="col-2">
+            {{ form.show(class_='btn btn-primary mx-2') }}
+        </div>
+        </form>
+    </div>
+    <hr/>
+    <h4>Search results for {{q}}</h4>
+    {% for book in bdata['items']: %}
+        <div class="row">
+            <div class="col-2 text-center">
+                <img src="{{ book['volumeInfo']['imageLinks']['thumbnail'] }}" alt="" height="100px">
+            </div>
+            <div class="col-5">
+                <h6>{{ book['volumeInfo']['title'] }}</h6>
+                <p>
+                    By {{ book['volumeInfo']['authors'] }}
+                </p>
+                <p class="short-desc">
+                    {{ book['volumeInfo']['description']}}...
+                </p>
+            </div>
+            <div class="col-3">
+                {% if 'listPrice' in book['saleInfo']: %}
+                    <h6>{{ book['saleInfo']['listPrice']['currencyCode']}} {{ book['saleInfo']['listPrice']['amount']}}</h6>
+                    <a type="button" class="btn btn-primary btn-lg" href="{{url_for('book_info', volume_id=book['id'])}}">Buy Now</a>
+                {% else: %}
+                    Not For Sale
+                {% endif %}
+            </div>
+        </div>
+        <hr>
+    {% endfor %}
+</div>
+
+{% endblock %}
