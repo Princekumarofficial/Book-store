@@ -18,7 +18,7 @@
         </div>
         <div class="col">
             <h5>INR {{ sbook[5] }}</h5>
-            <a href="{{ url_for('checkout', isbn=sbook[8]) }}" class="btn btn-primary btn-lg">Buy Now</a>
+            <a href="{{ url_for('checkout', volume_id=book['id']) }}" class="btn btn-primary btn-lg">Buy Now</a>
         </div>
     </div>
 </div>

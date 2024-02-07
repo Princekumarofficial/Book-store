@@ -38,7 +38,8 @@ class User(db.Model, UserMixin):
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    address = db.Column(db.String)
+    address = db.Column(db.String, nullable=False)
+    book_data = db.Column(db.String, nullable=False)
 
 #creating tables
 with app.app_context():
@@ -56,6 +57,25 @@ data['price'] = pd.to_numeric(data['price'])
 data['price'] = data['price']*83
 data['price'] = data['price'].round()
 data.isbn = pd.to_numeric(data.isbn)
+
+def get_formatted_list(r):
+    sbook = []
+    img_url = r['volumeInfo']['imageLinks']['thumbnail']
+    sbook.append(img_url)
+    sbook.append(r['volumeInfo']['title'])
+    sbook.append(r['volumeInfo']['authors'][0])
+    sbook.append(r['volumeInfo']['printType'])
+    try:
+        sbook.append(r['volumeInfo']['averageRating'])
+    except:
+        sbook.append(0)
+    sbook.append(r['saleInfo']['listPrice']['amount'])
+    sbook.append(r['saleInfo']['listPrice']['currencyCode'])
+    sbook.append(0)
+    sbook.append(r['volumeInfo']['industryIdentifiers'][0]['identifier'])
+    sbook.append(r['volumeInfo']['categories'][0])
+    sbook.append(sbook[0])
+    return sbook
 
 
 #html forms to display on website using wtforms
@@ -103,8 +123,8 @@ def book():
     sform = SearchForm()
     volume_id = request.args.get('volume_id')
     isbn = int(request.args.get('isbn'))
-    sbook = data.loc[data.isbn==isbn].values.tolist()
     r = requests.get(f'https://www.googleapis.com/books/v1/volumes/{volume_id}').json()
+    sbook = get_formatted_list(r)
     return render_template('book.html', book=r, sbook=sbook[0], sform=sform)
 
 @app.route('/book_info')
@@ -114,19 +134,7 @@ def book_info():
     
     r = requests.get(f'https://www.googleapis.com/books/v1/volumes/{volume_id}').json()
     #making a copy of sbook instance
-    sbook = []
-    img_url = r['volumeInfo']['imageLinks']['thumbnail']
-    sbook.append(img_url)
-    sbook.append(r['volumeInfo']['title'])
-    sbook.append(r['volumeInfo']['authors'][0])
-    sbook.append(r['volumeInfo']['printType'])
-    sbook.append(r['volumeInfo']['averageRating'])
-    sbook.append(r['saleInfo']['listPrice']['amount'])
-    sbook.append(r['saleInfo']['listPrice']['currencyCode'])
-    sbook.append(0)
-    sbook.append(r['volumeInfo']['industryIdentifiers'][0]['identifier'])
-    sbook.append(r['volumeInfo']['categories'][0])
-    sbook.append(sbook[0])
+    sbook = get_formatted_list(r)
 
     return render_template('book.html', book=r, sbook=sbook, sform=sform)
 
@@ -134,7 +142,6 @@ def book_info():
 def checkout():
     if not flask_login.current_user.is_authenticated:
         return redirect(url_for('login'))
-    sform = SearchForm()
     #storing user response for orders
     if request.method=='POST':
         address={
@@ -147,15 +154,25 @@ def checkout():
                 'Pin':request.form.get('zip'),
                 'State':request.form.get('state')
             }
+        volume_id = request.args.get('volume_id')
+        r = requests.get(f'https://www.googleapis.com/books/v1/volumes/{volume_id}').json()
+        book_data = {
+            'volume_id': volume_id,
+            'price': f"{sbook.append(r['saleInfo']['listPrice']['currencyCode'])} {r['saleInfo']['listPrice']['amount']}",
+            'isbn': json.dumps(r)
+        }
         new_order = Order(
-            address=json.dumps(address)
+            address=json.dumps(address),
+            book_data=book_data
         )
         db.session.add(new_order)
         db.session.commit()
         return redirect(url_for('home'))
-    isbn = int(request.args.get('isbn'))
-    sbook = data.loc[data.isbn==isbn].values.tolist()
-    return render_template('checkout.html', book=sbook[0], sform=sform)
+    sform = SearchForm()
+    volume_id = request.args.get('volume_id')
+    r = requests.get(f'https://www.googleapis.com/books/v1/volumes/{volume_id}').json()
+    sbook = get_formatted_list(r)
+    return render_template('checkout.html', book=sbook, sform=sform)
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
@@ -218,4 +235,4 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5005)
+    app.run()
