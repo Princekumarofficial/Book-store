@@ -158,12 +158,12 @@ def checkout():
         r = requests.get(f'https://www.googleapis.com/books/v1/volumes/{volume_id}').json()
         book_data = {
             'volume_id': volume_id,
-            'price': f"{sbook.append(r['saleInfo']['listPrice']['currencyCode'])} {r['saleInfo']['listPrice']['amount']}",
-            'isbn': json.dumps(r)
+            'price': f"{r['saleInfo']['listPrice']['currencyCode']} {r['saleInfo']['listPrice']['amount']}",
+            'isbn': r
         }
         new_order = Order(
             address=json.dumps(address),
-            book_data=book_data
+            book_data=json.dumps(book_data)
         )
         db.session.add(new_order)
         db.session.commit()
@@ -235,4 +235,4 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True, port=5005)
