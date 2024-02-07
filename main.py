@@ -14,7 +14,7 @@ import json
 import os
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get('FLASK_KEY')
+app.config["SECRET_KEY"] = os.environ.get('FLASK_KEY', 'nothingspecial')
 # To generate your own key run: python -c 'import secrets; print(secrets.token_hex())'
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -23,7 +23,7 @@ bootstrap = Bootstrap4(app)
 # create the extension
 db = SQLAlchemy()
 # configure the SQLite database, relative to the app instance folder
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get('DB_URI')
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get('DB_URI', 'sqlite:///books.db')
 # initialize the app with the extension
 db.init_app(app)
 
@@ -133,7 +133,7 @@ def book_info():
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     if not flask_login.current_user.is_authenticated:
-        return redirect(url_for('home'))
+        return redirect(url_for('login'))
     sform = SearchForm()
     #storing user response for orders
     if request.method=='POST':
@@ -218,4 +218,4 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True, port=5005)
