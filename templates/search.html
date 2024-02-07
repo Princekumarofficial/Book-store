@@ -4,7 +4,7 @@
 {% block title %}Search{% endblock %}
 
 {% block content %}
-
+<!-- Form for filters -->
 <div class="container">
     <div class="row justify-content-center">
         <form action="{{ url_for('search', q=q) }}" method="post" class="row justify-content-center">
@@ -28,6 +28,7 @@
         </form>
     </div>
     <hr/>
+    <!-- Shows user searches -->
     <h4>Search results for {{q}}</h4>
     {% for book in bdata['items']: %}
         <div class="row">

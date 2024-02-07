@@ -5,7 +5,7 @@ from wtforms.validators import DataRequired, Email
 import pandas as pd
 import requests
 import flask_login
-from flask_login import LoginManager, UserMixin, login_user, logout_user
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
@@ -14,6 +14,7 @@ import json
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = 'd819c5931c79e9a97094b8bcc2d6686b37880569c87a53be1f61ae008b981421'
+# To generate your own key run: python -c 'import secrets; print(secrets.token_hex())'
 login_manager = LoginManager()
 login_manager.init_app(app)
 bootstrap = Bootstrap(app)
@@ -25,7 +26,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///Books.db"
 # initialize the app with the extension
 db.init_app(app)
 
-
+# Tables in Databasse
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String, unique=True, nullable=False)
@@ -38,14 +39,16 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String)
 
-
+#creating tables
 with app.app_context():
     db.create_all()
 
+#login manager for user management
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.execute(db.Select(User).where(User.id == user_id)).scalar()
 
+#reading the data
 data = pd.read_csv('static/main_dataset.csv')
 data.dropna()
 data['price'] = pd.to_numeric(data['price'])
@@ -54,6 +57,7 @@ data['price'] = data['price'].round()
 data.isbn = pd.to_numeric(data.isbn)
 
 
+#html forms to display on website using wtforms
 class SearchForm(FlaskForm):
     q = SearchField('Search', render_kw={"placeholder": "Search..."}, validators=[DataRequired()])
     category = SelectField('Category', choices=['All', 'Fiction', 'Non-Fiction'])
@@ -76,10 +80,12 @@ class SearchFilter(FlaskForm):
     order_by = SelectField('Order by', choices=['Relevance', 'Newest'])
     show = SubmitField('Apply Filters')
 
+#Making the routes for webpages
 @app.route('/')
 def home():
     sform = SearchForm()
     s_books = data.sample(4).values.tolist()
+    #getting cover images from google books api and volume id
     for b in s_books:
         try:
             r = requests.get('https://www.googleapis.com/books/v1/volumes', params={'q': b[8]}).json()
@@ -106,6 +112,7 @@ def book_info():
     volume_id = request.args.get('volume_id')
     
     r = requests.get(f'https://www.googleapis.com/books/v1/volumes/{volume_id}').json()
+    #making a copy of sbook instance
     sbook = []
     img_url = r['volumeInfo']['imageLinks']['thumbnail']
     sbook.append(img_url)
@@ -124,7 +131,10 @@ def book_info():
 
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
+    if not flask_login.current_user.is_authenticated:
+        return redirect(url_for('home'))
     sform = SearchForm()
+    #storing user response for orders
     if request.method=='POST':
         address={
                 'First_Name':request.form.get('firstName'),
@@ -152,6 +162,8 @@ def search():
     sfilter = SearchFilter()
     q = request.form.get('q', 'Fiction')
     params = {'langRestrict' : 'en'}
+
+    #To filter user searches and show relevant data
     if sfilter.validate_on_submit():
         if sfilter.ebook_type.data != 'PaperBack':
             params['filter'] =  f'{sfilter.ebook_type.data}-ebooks'
@@ -167,6 +179,7 @@ def search():
 def login():
     sform = SearchForm()
     login_form = LoginForm()
+    #login form check
     if login_form.validate_on_submit:
         email = login_form.email.data
         password = login_form.password.data
@@ -183,6 +196,7 @@ def login():
 def register():
     sform = SearchForm()
     rform = RegisterForm()
+    #registering the user
     if rform.validate_on_submit():
         name=rform.name.data
         email=rform.email.data
