@@ -1,0 +1,30 @@
+{% from 'bootstrap4/form.html' import render_form %}
+{% extends 'base.html' %}
+
+{% block title %}Orders{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h4>My Orders</h4>
+    {% for order in odata: %}
+        <div class="row">
+            <div class="col-2 text-center">
+                <img src="{{ order['volumeInfo']['imageLinks']['thumbnail'] }}" alt="" height="100px">
+            </div>
+            <div class="col-5">
+                <h6>{{ order['volumeInfo']['title'] }}</h6>
+                {% if 'listPrice' in order['saleInfo']: %}
+                    <h6>{{ order['saleInfo']['listPrice']['currencyCode']}} {{ order['saleInfo']['listPrice']['amount']}}</h6>
+                {% else: %}
+                    Not For Sale
+                {% endif %}
+            </div>
+            <div class="col-3">
+                {{order['order_data'].address}}
+            </div>
+        </div>
+        <hr>
+    {% endfor %}
+</div>
+
+{% endblock %}

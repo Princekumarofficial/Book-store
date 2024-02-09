@@ -12,6 +12,8 @@ from flask_bootstrap import Bootstrap4
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import os
+from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get('FLASK_KEY', 'nothingspecial')
@@ -29,17 +31,22 @@ db.init_app(app)
 
 # Tables in Databasse
 class User(db.Model, UserMixin):
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String, unique=True, nullable=False)
     name = db.Column(db.String, nullable=False)
     password = db.Column(db.String, nullable=False)
     address = db.Column(db.String)
+    orders = relationship('Order', back_populates='user')
 
 
 class Order(db.Model):
+    __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.String, nullable=False)
-    book_data = db.Column(db.String, nullable=False)
+    volume_id = db.Column(db.String, nullable=False)
+    user_id = db.Column(db.Integer, ForeignKey('users.id'))
+    user = relationship("User", back_populates='orders')
 
 #creating tables
 with app.app_context():
@@ -155,15 +162,10 @@ def checkout():
                 'State':request.form.get('state')
             }
         volume_id = request.args.get('volume_id')
-        r = requests.get(f'https://www.googleapis.com/books/v1/volumes/{volume_id}').json()
-        book_data = {
-            'volume_id': volume_id,
-            'price': f"{r['saleInfo']['listPrice']['currencyCode']} {r['saleInfo']['listPrice']['amount']}",
-            'isbn': r
-        }
         new_order = Order(
             address=json.dumps(address),
-            book_data=json.dumps(book_data)
+            volume_id=volume_id,
+            user=flask_login.current_user
         )
         db.session.add(new_order)
         db.session.commit()
@@ -226,8 +228,22 @@ def register():
         db.session.add(new_user)
         db.session.commit()
         login_user(new_user)
-        return redirect(url_for('home'))
+        return redirect(url_for('orders'))
     return render_template('register.html', sform=sform, rform = rform)
+
+@login_required
+@app.route('/orders')
+def orders():
+    sform=SearchForm()
+    orders=flask_login.current_user.orders
+    orders_data=[]
+    i=0
+    for order in orders:
+        r = requests.get(f'https://www.googleapis.com/books/v1/volumes/{order.volume_id}').json()
+        orders_data.append(r)
+        orders_data[i]['order_data']=order
+        i+=1
+    return render_template('orders.html', sform=sform, odata=orders_data, )
 
 @app.route('/logout')
 def logout():
