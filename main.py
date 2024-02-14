@@ -131,7 +131,7 @@ def book():
     volume_id = request.args.get('volume_id')
     isbn = int(request.args.get('isbn'))
     r = requests.get(f'https://www.googleapis.com/books/v1/volumes/{volume_id}').json()
-    sbook = get_formatted_list(r)
+    sbook = data.loc[data.isbn==isbn].values.tolist()
     return render_template('book.html', book=r, sbook=sbook[0], sform=sform)
 
 @app.route('/book_info')
@@ -251,4 +251,4 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5005)
+    app.run()
